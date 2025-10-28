@@ -1,4 +1,7 @@
-from flask import Flask, render_template
+import os
+import eventlet
+eventlet.monkey_patch()
+from flask import Flask
 from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
@@ -16,7 +19,8 @@ def index():
 @socketio.on('user connected')
 def on_user_connected(data):
     username = data['username']
-    users.append(username)
+    if username not in users:
+        users.append(username)
     emit('user list', users, broadcast=True)
 
 @socketio.on('chat message')
@@ -27,6 +31,12 @@ def on_message(data):
 def on_typing(data):
     emit('typing', data, broadcast=True, include_self=False)
 
+@socketio.on('disconnect')
+def on_disconnect():
+    # Optionally remove user from users list here
+    pass
+
 if __name__ == '__main__':
-    print("=== Starting chat server on http://0.0.0.0:5000 ===")
-    socketio.run(app, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 10000))
+    print(f"=== Starting chat server on http://0.0.0.0:{port} ===")
+    socketio.run(app, host='0.0.0.0', port=port)
